@@ -1,0 +1,51 @@
+version: '3.7'
+services:
+  dind:
+    image: docker:dind
+    container_name: jenkins_docker
+    privileged: true
+    networks:
+      jenkins:
+        aliases:
+          - docker
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+    - jenkins-docker-certs:/certs/client
+    - jenkins-data:/var/jenkins_home
+    expose:
+      - 2376
+    ports:
+    - 2376:2376
+
+  jenkins:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      - jenkins
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: 1
+    expose:
+      - 8080
+      - 50000
+    ports:
+    - 8080-8099:8080
+    - 50000:50000
+    volumes:
+    - jenkins-data:/var/jenkins_home
+    - jenkins-docker-certs:/certs/client:ro
+    depends_on:
+      - dind
+
+volumes:
+  jenkins-data:
+    name: jenkins-data
+  jenkins-docker-certs:
+    name: jenkins-docker-certs
+
+networks:
+  jenkins:
+    name: jenkins
